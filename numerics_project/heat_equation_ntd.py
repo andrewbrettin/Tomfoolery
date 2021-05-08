@@ -55,9 +55,11 @@ class HeatEquation:
         ux_b
             Sets the Von Neumann boundary condition on the right endpoint.
         u : xarray.DataArray
-            2D grid containing the values of u at points xs, ts. The first
-            index is for the spatial point and the second index is for the 
-            temporal point.
+            2D grid containing the numerically computed values of u at points 
+            xs, ts. The first index is for the spatial index and the second 
+            index is for the temporal index.
+        utrue : xarray.DataArray
+            The true value of the solution
 
     """
 
@@ -110,8 +112,11 @@ class HeatEquation:
         '''
         Returns the local part of the integral, I_L, by approximating u_x as a linear function.
         '''
-        dt = tk[-1] - tk[-2]
-        return sqrt(dt) * (4/3*u_x(tk[-1]) + 2/3*u_x(tk[-2]))
+        if len(tk) == 1:
+            return 0
+        else:
+            dt = tk[-1] - tk[-2]
+            return sqrt(dt) * (4/3*u_x(tk[-1]) + 2/3*u_x(tk[-2]))
 
     def run(self):
         '''
@@ -129,10 +134,10 @@ class HeatEquation:
         else: 
             def u_a(t):
                 tk = self.ts[self.ts <=t]
-                return 1/pi*(self.__I_H(tk, self.ux_a) + self.__I_L(tk, self.ux_a))
+                return -1/sqrt(pi)*(self.__I_H(tk, self.ux_a) + self.__I_L(tk, self.ux_a))
             def u_b(t):
                 tk = self.ts[self.ts <=t]
-                return -1/pi*(self.__I_H(tk, self.ux_a) + self.__I_L(tk, self.ux_a))
+                return 1/sqrt(pi)*(self.__I_H(tk, self.ux_b) + self.__I_L(tk, self.ux_b))
         for j in range(0, self.N-1):
             u_last = np.array(self.u.isel(t=j))[1:-1] # Interior last values
             # Set RHS
@@ -147,11 +152,24 @@ class HeatEquation:
         if ax == None:
             fig, ax = plt.subplots()
         self.u.isel(t=0).plot(ax=ax, label='Initial value')
-        for j in [0, 1, 10, 100, -1]:
+        for j in [1, 5, 10, 50, 100, -1]:
             self.u.isel(t=j).plot(ax=ax, label='Numerical sol, t={}'.format(self.ts[j]))
         ax.legend(bbox_to_anchor=[1,0.5], loc='center left')
         ax.set_title(title)
 
+    def plot_true_sol(self, N_max=42, ax=None, title=None):
+        u = quad(self.u0,0,1)[0]*np.ones((len(self.xs), len(self.ts)))
+        for n in range(1, N_max):
+            f = lambda y : self.u0(y)*cos(n*pi*y)
+            u = u + 2*quad(f,0,1)[0]*np.array([[cos(n*pi*x)*exp(-(n*pi)**2 *t) for t in self.ts] for x in self.xs])
+        u = xr.DataArray(u, dims=('x', 't'), coords={'x':self.xs, 't':self.ts})
+        if ax == None:
+            fig, ax = plt.subplots()
+        u.isel(t=0).plot(ax=ax, label='Initial value')
+        for j in [1, 5, 10, 50, 100, -1]:
+            u.isel(t=j).plot(ax=ax, label='True sol, t={}'.format(self.ts[j]))
+        ax.legend(bbox_to_anchor=[1,0.5], loc='center left')
+        ax.set_title(title)
 
     def saveanimation(self, filename, filetype='.gif'):
         '''
