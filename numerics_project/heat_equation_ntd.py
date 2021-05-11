@@ -157,6 +157,8 @@ class HeatEquation:
         ax.legend(bbox_to_anchor=[1,0.5], loc='center left')
         ax.set_title(title)
 
+    def return_true_solution(self )
+
     def plot_true_sol(self, N_max=42, ax=None, title=None):
         u = quad(self.u0,0,1)[0]*np.ones((len(self.xs), len(self.ts)))
         for n in range(1, N_max):
