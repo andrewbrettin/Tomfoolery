@@ -137,18 +137,14 @@ def plot_threshold(data, q, ax=None, show_legend=True, **kwargs):
         data.plot(ax=ax, label=data.name, **kwargs)
         if len(data.dims) != 1:
             raise ValueError('Input data has more than one dimension')
-        
-        ax.hlines(
-            threshold, 0, len(data), ls='--',
-            color='k', label='{}th percentile'.format(int(q*100))
-        )
     else:
-        ax.plot(data)
-        N = len(data)
-        ax.hlines(
-            threshold, 0, N, ls='--', color='k',
-            label='{}th percentile'.format(int(q*100))
-        )
+        ax.plot(data, **kwargs)
+
+    N = len(data)
+    ax.hlines(
+        threshold, 0, N, ls='--', color='k',
+        label='{}th percentile'.format(int(q*100))
+    )
     if show_legend:
         ax.legend()
     
@@ -207,7 +203,7 @@ def plot_extreme_value_distribution(extremes, fitted_params=None, bins=50,
 
 
 def plot_return_level(data, T, fitted_params=None, q=0.95,
-        ax=None, show_legend=True, **kwargs):
+        ax=None, **kwargs):
     """
     For a given timeseries dataset, computes a return level 
     for a given return period.
@@ -244,8 +240,8 @@ def plot_return_level(data, T, fitted_params=None, q=0.95,
         ]
     else:
         return_levels = [
-            return_level(data, level, q=0.95, fitted_params=fitted_params)
-            for level in T
+            return_level(data, period, q=0.95, fitted_params=fitted_params)
+            for period in T
         ]
     
     if ax is None:
@@ -254,22 +250,20 @@ def plot_return_level(data, T, fitted_params=None, q=0.95,
     if isinstance(data, xr.DataArray):
         # Time is assumed to be the only dimension
         data.plot(ax=ax, label=data.name, **kwargs)
-        if len(data.dims) != 1:
-            raise ValueError('Input data has more than one dimension')
         
-        ax.hlines(
-            return_levels, 0, len(data), ls='--',
-            color='k', label=''
-        )
     else:
         ax.plot(data)
-        N = len(data)
-        ax.hlines(
-            return_levels, 0, N, ls='--', color='k',
-            label=''
-        )
-    if show_legend:
-        ax.legend()
+
+    ax.hlines(
+        return_levels, 0, len(data), ls='dotted',
+        color='k',
+    )
+
+    if isinstance(T, int):
+        ax.text(0, return_levels[0] + 0.1, '1 in ' + str(T))
+    else:
+        for i, period in enumerate(T):
+            ax.text(0, return_levels[i]+0.1, '1 in ' + str(period))
     
     return ax
     
